@@ -6,7 +6,7 @@ A documented, reproducible snapshot of global magnitude 5.0 and larger earthquak
 
 - [Dataset: USGS Global M5+ Earthquakes, 2016–2025](https://www.kaggle.com/datasets/rashidel1988/usgs-global-m5-earthquakes-2016-2025)
 - [R notebook: Global M5+ Earthquakes: R Exploration](https://www.kaggle.com/code/rashidel1988/global-m5-earthquakes-r-exploration)
-- R Markdown report source: [USGS M5+ Catalog Data Quality and Coverage Audit](usgs_catalog_audit.Rmd)
+- [R Markdown report: USGS M5 Catalog Data Quality and Coverage Audit](https://www.kaggle.com/code/rashidel1988/usgs-m5-catalog-data-quality-and-coverage-audit) ([source](usgs_catalog_audit.Rmd))
 
 The CSV is published on Kaggle. This GitHub repository keeps the extraction code, snapshot metadata, and analysis notebook; it does not redistribute the catalog records. Run **python fetch_catalog.py** to retrieve a fresh local copy from USGS, subject to the source and reuse notes below.
 
