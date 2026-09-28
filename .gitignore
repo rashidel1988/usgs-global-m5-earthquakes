@@ -1,0 +1,6 @@
+# Generated source records; retrieve locally with fetch_catalog.py.
+earthquakes_m5_2016_2025.csv
+
+# Kaggle CLI upload staging copies.
+kaggle-dataset/
+kaggle-notebook/

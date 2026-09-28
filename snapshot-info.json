@@ -1,0 +1,16 @@
+{
+  "source": "U.S. Geological Survey (USGS), ComCat earthquake catalog",
+  "api": "https://earthquake.usgs.gov/fdsnws/event/1/query",
+  "downloaded_utc": "2026-09-28T16:20:16.429440+00:00",
+  "query": {
+    "format": "csv",
+    "starttime": "2016-01-01",
+    "endtime": "2025-12-31T23:59:59.999",
+    "minmagnitude": 5,
+    "eventtype": "earthquake",
+    "orderby": "time-asc"
+  },
+  "row_count": 17502,
+  "sort_order": "time ascending",
+  "deduplication": "USGS event id; last returned record retained"
+}
