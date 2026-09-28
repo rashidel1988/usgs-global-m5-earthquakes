@@ -4,3 +4,4 @@ earthquakes_m5_2016_2025.csv
 # Kaggle CLI upload staging copies.
 kaggle-dataset/
 kaggle-notebook/
+kaggle-rmarkdown/

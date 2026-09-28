@@ -1,0 +1,114 @@
+---
+title: "USGS M5+ Earthquake Catalog: Data Quality and Coverage Audit"
+output: html_document
+---
+
+This report checks the structure and coverage of the ten-calendar-year USGS ComCat extract (2016–2025 UTC). It focuses on record integrity, missingness, magnitude scales, and contributing networks. It does **not** treat catalog counts as a direct measure of changes in global seismicity.
+
+The source CSV is attached from the [Kaggle dataset](https://www.kaggle.com/datasets/rashidel1988/usgs-global-m5-earthquakes-2016-2025). The query and reuse notes are documented there. ComCat records can include contributions from other networks; preserve source attribution and check applicable source terms before redistributing records.
+
+```{r setup}
+input_files <- list.files('/kaggle/input',
+                          pattern = '^earthquakes_m5_2016_2025\\.csv$',
+                          recursive = TRUE, full.names = TRUE)
+if (length(input_files) == 0) {
+  input_files <- 'earthquakes_m5_2016_2025.csv'
+}
+if (!file.exists(input_files[1])) {
+  stop('Catalog CSV not found. Attach the USGS M5+ dataset or run from its local folder.')
+}
+
+events <- read.csv(input_files[1], stringsAsFactors = FALSE,
+                   na.strings = c('', 'NA'))
+events$time <- as.POSIXct(sub('Z$', '', events$time),
+                          format = '%Y-%m-%dT%H:%M:%OS', tz = 'UTC')
+events$year <- as.integer(format(events$time, '%Y', tz = 'UTC'))
+
+required <- c('time', 'latitude', 'longitude', 'depth', 'mag', 'magType', 'net', 'id')
+missing_columns <- setdiff(required, names(events))
+if (length(missing_columns) > 0) {
+  stop(paste('Missing expected columns:', paste(missing_columns, collapse = ', ')))
+}
+```
+
+## Snapshot checks
+
+These checks describe the downloaded file. A duplicate event ID or an invalid coordinate is flagged as a value to inspect, not silently corrected.
+
+```{r integrity}
+integrity <- data.frame(
+  check = c('Rows', 'Distinct event IDs', 'Rows with duplicate IDs',
+            'Missing or unparsed origin times', 'Magnitudes below 5.0',
+            'Latitudes outside [-90, 90]', 'Longitudes outside [-180, 180]'),
+  value = c(
+    nrow(events),
+    length(unique(events$id[!is.na(events$id)])),
+    sum(duplicated(events$id) & !is.na(events$id)),
+    sum(is.na(events$time)),
+    sum(events$mag < 5.0, na.rm = TRUE),
+    sum(events$latitude < -90 | events$latitude > 90, na.rm = TRUE),
+    sum(events$longitude < -180 | events$longitude > 180, na.rm = TRUE)
+  )
+)
+knitr::kable(integrity, caption = 'Basic integrity checks')
+```
+
+The extract is expected to contain one row per USGS event ID, with preferred magnitude at least 5.0. Missing optional fields are common in a multi-network catalog and do not by themselves mean a record is invalid.
+
+## Missingness in analysis fields
+
+```{r missingness}
+fields_to_check <- c('time', 'latitude', 'longitude', 'depth', 'mag',
+                     'magType', 'net', 'horizontalError', 'depthError', 'magError')
+fields_to_check <- intersect(fields_to_check, names(events))
+missingness <- data.frame(
+  field = fields_to_check,
+  missing_rows = vapply(events[fields_to_check], function(x) sum(is.na(x)), integer(1)),
+  missing_percent = vapply(events[fields_to_check],
+                           function(x) 100 * mean(is.na(x)), numeric(1))
+)
+missingness <- missingness[order(missingness$missing_percent, decreasing = TRUE), ]
+knitr::kable(missingness, digits = 2,
+             caption = 'Missing values in selected fields')
+
+op <- par(mar = c(9, 4, 3, 1))
+barplot(missingness$missing_percent, names.arg = missingness$field,
+        las = 2, ylim = c(0, 100), ylab = 'Missing rows (%)',
+        main = 'Selected field missingness', col = '#3B82A0', border = NA)
+par(op)
+```
+
+## Magnitude scales and contributing networks
+
+Magnitude values can come from different scales. Retain `magType` when comparing magnitudes. Network counts describe who contributed preferred solutions to this extract, not a ranking of network quality or geographic completeness.
+
+```{r sources}
+top_magnitude_types <- head(sort(table(events$magType, useNA = 'ifany'),
+                                 decreasing = TRUE), 10)
+knitr::kable(data.frame(magnitude_type = names(top_magnitude_types),
+                        records = as.integer(top_magnitude_types)),
+             caption = 'Most frequent reported magnitude types')
+
+top_networks <- head(sort(table(events$net, useNA = 'ifany'), decreasing = TRUE), 12)
+barplot(sort(top_networks), horiz = TRUE, las = 1,
+        xlab = 'Records', main = 'Most frequent contributing network codes',
+        col = '#6D8F68', border = NA)
+```
+
+## Calendar-year coverage
+
+```{r annual}
+year_counts <- table(factor(events$year, levels = 2016:2025))
+knitr::kable(data.frame(year_utc = names(year_counts),
+                        records = as.integer(year_counts)),
+             caption = 'Records per calendar year in this fixed interval')
+barplot(year_counts, main = 'M5+ catalog records by origin year (UTC)',
+        xlab = 'Origin year', ylab = 'Catalog records',
+        col = '#3B82A0', border = NA, las = 2)
+```
+
+Differences between years can reflect detection, network coverage, review, and catalog revisions. The bars are counts in this thresholded extract; they are not an estimate of the Earth's underlying earthquake rate.
+
+## Source and limits
+
+Source: [USGS ComCat FDSN Event Web Service](https://earthquake.usgs.gov/fdsnws/event/1/). This report does not attempt to infer tectonic causes or correct for uneven reporting. The preferred solutions and event list can change as ComCat is revised. Consult the dataset README and [USGS data licensing guidance](https://www.usgs.gov/data-management/data-licensing) before reusing records.
